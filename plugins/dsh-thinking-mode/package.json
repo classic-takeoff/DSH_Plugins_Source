@@ -1,6 +1,6 @@
 {
   "name": "dsh-thinking-mode",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Concise thinking work-step view: hides tool calls and shows reasoning unwrapped.",
   "type": "module",
   "main": "lib/index.js",
@@ -23,7 +23,8 @@
       "platform": "web",
       "inject": [
         "@deepseek-ai/dsh-client-ui-chat",
-        "@deepseek-ai/dsh-client-ui-settings"
+        "@deepseek-ai/dsh-client-ui-settings",
+        "@deepseek-ai/dsh-client-ui-primitives"
       ]
     }
   },

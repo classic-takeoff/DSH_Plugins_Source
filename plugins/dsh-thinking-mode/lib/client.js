@@ -6,6 +6,7 @@ window.__ModuleLoader__.load({
 		Object.defineProperty(exports, Symbol.toStringTag, { value: "Module" });
 
 		const React = require("react");
+		const { Switch } = require("@deepseek-ai/dsh-client-ui-primitives");
 		const h = React.createElement;
 
 		/** Local preference; no Host setting is written, so the built-in enum stays untouched. */
@@ -95,39 +96,29 @@ window.__ModuleLoader__.load({
 		function ThinkingRow() {
 			const on = useEnabled();
 			const zh = (globalThis.navigator?.language ?? "en").toLowerCase().startsWith("zh");
+			const title = zh ? "简洁思考模式" : "Concise thinking";
 			return h('div', {
 				"data-dsh-thinking-setting": "",
 				style: {
 					display: "flex",
 					alignItems: "center",
 					justifyContent: "space-between",
-					gap: "16px",
-					padding: "12px 0"
+					gap: "24px",
+					padding: "16px 0",
+					borderBottom: "0.5px solid var(--dsw-alias-border-l2)"
 				}
 			},
 				h("div", { style: { minWidth: 0 } },
-					h("div", { style: { fontWeight: 600, fontSize: "14px" } }, zh ? "简洁思考模式" : "Concise thinking"),
-					h("div", { style: { opacity: 0.65, fontSize: "12px", lineHeight: "18px", marginTop: "2px" } },
+					h("div", { style: { fontSize: "14px", lineHeight: "20px" } }, title),
+					h("div", { style: { color: "var(--dsw-alias-label-secondary)", marginTop: "4px", fontSize: "12px", lineHeight: "18px" } },
 						zh
 							? "仅展示思考内容：隐藏工具调用，思考不换行、完整显示"
 							: "Thinking only: hides tool calls and shows reasoning unwrapped")),
-				h("button", {
-					type: "button",
-					"aria-pressed": on,
-					"data-dsh-thinking-toggle": on ? "on" : "off",
-					onClick: () => setEnabled(!on),
-					style: {
-						flex: "none",
-						cursor: "pointer",
-						padding: "4px 14px",
-						borderRadius: "6px",
-						border: on ? "1px solid transparent" : "1px solid rgba(127,127,127,.4)",
-						background: on ? "var(--dsw-alias-brand-primary, #4d6bfe)" : "transparent",
-						color: on ? "#fff" : "var(--dsw-alias-label-primary, inherit)",
-						fontSize: "12px",
-						lineHeight: "20px"
-					}
-				}, zh ? (on ? "关闭" : "开启") : (on ? "Disable" : "Enable")));
+				h(Switch, {
+					checked: on,
+					label: title,
+					onChange: (next) => setEnabled(next)
+				}));
 		}
 
 		function apply(ctx) {
