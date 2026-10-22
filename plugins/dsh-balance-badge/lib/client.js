@@ -8,8 +8,8 @@ window.__ModuleLoader__.load({
 		const React = require("react");
 		const h = React.createElement;
 
-		/** Must match package.json; the Host uses it for Platform client headers. */
-		const VERSION = "1.0.0";
+		/** DSH client version carried on Platform account requests; keep in step with the app release. */
+		const CLIENT_VERSION = "0.2.1-rc.2";
 		const REFRESH_MS = 60_000;
 
 		const COPY = {
@@ -44,7 +44,7 @@ window.__ModuleLoader__.load({
 				setSnapshot((previous) => (previous.kind === "ready" ? { ...previous, busy: true } : { kind: "loading" }));
 				try {
 					const metadata = {
-						version: VERSION,
+						version: CLIENT_VERSION,
 						locale: locale.getSnapshot().active,
 						timezoneOffsetSeconds: -new Date().getTimezoneOffset() * 60
 					};
@@ -73,7 +73,12 @@ window.__ModuleLoader__.load({
 			React.useEffect(() => {
 				void refresh();
 				const timer = setInterval(() => { void refresh(); }, REFRESH_MS);
-				return () => clearInterval(timer);
+				const onFocus = () => { void refresh(); };
+				if (typeof window !== "undefined" && typeof window.addEventListener === "function") window.addEventListener("focus", onFocus);
+				return () => {
+					clearInterval(timer);
+					if (typeof window !== "undefined" && typeof window.removeEventListener === "function") window.removeEventListener("focus", onFocus);
+				};
 			}, [refresh]);
 
 			const wallets = snapshot.kind === "ready" ? snapshot.wallets : [];

@@ -1,6 +1,6 @@
 {
   "name": "dsh-balance-badge",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Shows the DeepSeek account balance in the bottom-right corner, refreshed automatically.",
   "type": "module",
   "main": "lib/index.js",
