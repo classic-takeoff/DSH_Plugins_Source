@@ -65,6 +65,23 @@ git push
 
 agent 的完整流程就这一句：**放文件夹 → `git add` → `git commit` → `git push`**。
 
+## 本地自动化上传（可选）
+
+插件项目在本机时，可以用一条命令完成「校验 → 复制 → 提交 → 重建 → 推送」：
+
+```powershell
+node scripts/publish-plugin.mjs C:\dev\my-plugin --dry-run   # 只检查，不改动
+node scripts/publish-plugin.mjs C:\dev\my-plugin
+# 等价写法：pnpm upload -- C:\dev\my-plugin
+```
+
+- 源目录可以放在仓库里面（例如 `.inbox/my-plugin`），它自己的未提交改动不会触发「工作区不干净」的保护。
+- 脚本会校验包结构、复制到 `plugins/<name>/`、提交、用新提交重建并校验索引，然后 push。
+- 参数：`--dry-run` 只检查；`--no-push` 只提交不推送；`--no-commit` 只复制；`--update` 覆盖已有目录；`--allow-dirty` 跳过干净检查；`--message` 自定义提交信息。
+- 需要本机已登录 GitHub（`git credential-manager github login`），并且当前分支是 `main`/`master`。
+
+推送后仍然由 GitHub Actions 校验并部署；失败就按报错修插件，再跑一次。
+
 ## CI 校验什么
 
 每次推送都要满足以下规则，违反任意一条都会让运行失败且不发布：

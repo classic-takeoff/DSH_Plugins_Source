@@ -29,6 +29,7 @@ const PLUGINS_ROOT = path.join(ROOT, 'plugins');
 const EXCLUDED = new Set(['node_modules', '.git', '.cache', '.pnpm-store', 'dist', 'coverage', '.turbo', '.DS_Store']);
 
 function usage() {
+  console.log('Automated upload: copy a local plugin into plugins/, commit, rebuild the index and push.');
   console.log(`usage: node scripts/publish-plugin.mjs <local-plugin-dir> [--dry-run] [--no-push] [--no-commit] [--update] [--allow-dirty] [--message TEXT]`);
 }
 

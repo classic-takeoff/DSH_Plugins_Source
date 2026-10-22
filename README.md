@@ -65,6 +65,23 @@ The **Deploy plugin index** workflow runs the tests, validates every plugin fold
 
 That is the whole agent workflow: **folder → `git add` → `git commit` → `git push`**.
 
+## Local automation (optional)
+
+When the plugin project lives on this machine, one command does validate → copy → commit → rebuild → push:
+
+```powershell
+node scripts/publish-plugin.mjs C:\dev\my-plugin --dry-run   # check only, changes nothing
+node scripts/publish-plugin.mjs C:\dev\my-plugin
+# same: pnpm upload -- C:\dev\my-plugin
+```
+
+- The source directory may live inside this repository (for example `.inbox/my-plugin`); its own uncommitted files do not trip the clean-tree guard.
+- The task validates the package, copies it to `plugins/<name>/`, commits, rebuilds and validates the index against the new commit, then pushes.
+- Flags: `--dry-run` check only; `--no-push` commit without pushing; `--no-commit` copy only; `--update` replace an existing folder; `--allow-dirty` skip the clean-tree guard; `--message` custom commit message.
+- Requires a logged-in GitHub CLI credential (`git credential-manager github login`) and a `main`/`master` branch.
+
+GitHub Actions still validates and deploys after the push; if the run fails, fix the plugin and run the task again.
+
 ## What CI validates
 
 Every push must satisfy these rules; a violation fails the run and publishes nothing:
