@@ -4,12 +4,13 @@
     "zh-cn": "余额角标"
   },
   "description": {
-    "en": "Shows the DeepSeek account balance in the bottom-right corner, refreshed automatically every minute with a manual refresh button.",
-    "zh-cn": "在右下角显示 DeepSeek 账户余额，每分钟自动更新，并提供手动刷新按钮。"
+    "en": "Shows the DeepSeek account balance in the bottom-right corner, refreshed automatically every minute, via the refresh button, or by clicking the artwork under it.",
+    "zh-cn": "在右下角显示 DeepSeek 账户余额，每分钟自动更新，也可点刷新按钮或点击下方立绘立即刷新。"
   },
   "category": "tools",
   "labels": ["stable"],
   "keywords": ["balance", "account", "credits", "余额", "账户"],
   "sortKeys": { "featured": 20 },
-  "author": "classic-takeoff"
+  "author": "classic-takeoff",
+  "icon": "icon.webp"
 }

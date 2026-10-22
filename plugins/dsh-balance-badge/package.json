@@ -1,19 +1,21 @@
 {
   "name": "dsh-balance-badge",
-  "version": "1.0.1",
-  "description": "Shows the DeepSeek account balance in the bottom-right corner, refreshed automatically.",
+  "version": "1.1.0",
+  "description": "Shows the DeepSeek account balance in the bottom-right corner, refreshed automatically or by clicking the artwork under it.",
   "type": "module",
   "main": "lib/index.js",
   "exports": {
     ".": "./lib/index.js",
     "./client": "./lib/client.js",
+    "./icon": "./icon.webp",
     "./package.json": "./package.json"
   },
   "files": [
     "cordis.patch.yml",
     "lib/index.js",
     "lib/client.js",
-    "README.md"
+    "README.md",
+    "icon.webp"
   ],
   "dsh": {
     "bundle": {
