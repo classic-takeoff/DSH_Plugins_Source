@@ -16,17 +16,16 @@
  *   --allow-dirty    allow unrelated uncommitted changes in this repository
  *   --message TEXT   commit message (default: feat(plugins): add <name>@<version>)
  */
-import { execFileSync } from 'node:child_process';
 import fs from 'node:fs/promises';
-import fsSync from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { loadConfig, parseJson, PluginError, readPlugin, scanPlugins, shortName } from '../lib/plugins.mjs';
+import { copyPluginTree } from '../lib/copy.mjs';
+import { useGit } from '../lib/git.mjs';
+import { folderFor, loadConfig, parseJson, PluginError, readPlugin, scanPlugins } from '../lib/plugins.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PLUGINS_ROOT = path.join(ROOT, 'plugins');
-const EXCLUDED = new Set(['node_modules', '.git', '.cache', '.pnpm-store', 'dist', 'coverage', '.turbo', '.DS_Store']);
+const { git, gitOrNull, run } = useGit(ROOT);
 
 function usage() {
   console.log('Automated upload: copy a local plugin into plugins/, commit, rebuild the index and push.');
@@ -50,66 +49,6 @@ function parseArgs(argv) {
     } else args[key] = true;
   }
   return args;
-}
-
-/**
- * Run git and capture its output through temporary files instead of pipes, so the helper
- * also works in sandboxes that forbid piped stdio.
- */
-function git(args) {
-  const stamp = `${String(process.pid)}-${String(Date.now())}-${Math.random().toString(16).slice(2)}`;
-  const stdoutFile = path.join(os.tmpdir(), `dsh-git-${stamp}.out`);
-  const stderrFile = path.join(os.tmpdir(), `dsh-git-${stamp}.err`);
-  const stdoutFd = fsSync.openSync(stdoutFile, 'w');
-  const stderrFd = fsSync.openSync(stderrFile, 'w');
-  let status = 0;
-  try {
-    execFileSync('git', args, { cwd: ROOT, stdio: ['ignore', stdoutFd, stderrFd] });
-  } catch (error) {
-    status = error.status ?? 1;
-  } finally {
-    fsSync.closeSync(stdoutFd);
-    fsSync.closeSync(stderrFd);
-  }
-  const stdout = fsSync.readFileSync(stdoutFile, 'utf8').trim();
-  const stderr = fsSync.readFileSync(stderrFile, 'utf8').trim();
-  fsSync.rmSync(stdoutFile, { force: true });
-  fsSync.rmSync(stderrFile, { force: true });
-  if (status !== 0) throw new Error(stderr === '' ? `git ${args.join(' ')} failed with exit code ${String(status)}` : stderr);
-  return stdout;
-}
-
-function gitOrNull(args) {
-  try {
-    return git(args);
-  } catch {
-    return undefined;
-  }
-}
-
-function run(command, args) {
-  execFileSync(command, args, { cwd: ROOT, stdio: 'inherit' });
-}
-
-async function copyTree(source, target) {
-  await fs.mkdir(target, { recursive: true });
-  for (const entry of await fs.readdir(source, { withFileTypes: true })) {
-    if (EXCLUDED.has(entry.name)) continue;
-    await fs.cp(path.join(source, entry.name), path.join(target, entry.name), {
-      recursive: true,
-      dereference: false,
-      force: true,
-    });
-  }
-}
-
-function folderFor(name, sourceDir) {
-  const short = shortName(name);
-  const folder = /^[a-z0-9][a-z0-9._-]*$/u.test(short) ? short : '';
-  if (folder === '') {
-    throw new PluginError(sourceDir, `cannot derive a safe plugins/ folder name from ${name}; use a package name made of letters, digits, dots, dashes or underscores`);
-  }
-  return folder;
 }
 
 async function main() {
@@ -181,7 +120,7 @@ async function main() {
   }
 
   if (exists) await fs.rm(targetDir, { recursive: true, force: true });
-  await copyTree(sourceDir, targetDir);
+  await copyPluginTree(sourceDir, targetDir);
   console.log('copied');
 
   await fs.access(path.join(targetDir, 'package.json'));
