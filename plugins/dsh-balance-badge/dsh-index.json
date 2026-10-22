@@ -1,0 +1,15 @@
+{
+  "title": {
+    "en": "Balance Badge",
+    "zh-cn": "余额角标"
+  },
+  "description": {
+    "en": "Shows the DeepSeek account balance in the bottom-right corner, refreshed automatically every minute with a manual refresh button.",
+    "zh-cn": "在右下角显示 DeepSeek 账户余额，每分钟自动更新，并提供手动刷新按钮。"
+  },
+  "category": "tools",
+  "labels": ["stable"],
+  "keywords": ["balance", "account", "credits", "余额", "账户"],
+  "sortKeys": { "featured": 20 },
+  "author": "classic-takeoff"
+}

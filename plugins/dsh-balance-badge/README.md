@@ -1,0 +1,25 @@
+# Balance Badge
+
+在 DeepSeek Harness 右下角显示当前账户余额。
+
+- **自动更新**：每 60 秒读取一次余额；重新聚焦窗口不会额外请求。
+- **手动刷新**：点角标右侧的 `↻` 立即读取。
+- **状态**：读取中显示「读取中…」，失败显示「点击重试」，未登录显示「未登录」；成功时鼠标悬停可看到最后更新时间。
+- 赠金余额大于 0 时，以 `+¥x.xx` 追加显示。
+
+余额来自 DSH 的 `account.getBalance` Remote（与「设置 → 账户」同一个数据源），只显示，不做任何修改。
+
+## 安装
+
+插件通过插件市场索引安装：
+
+```text
+https://classic-takeoff.github.io/DSH_Plugins_Source/index.json
+```
+
+安装后无需配置，角标出现在窗口右下角。
+
+## 实现
+
+- `lib/index.js`：Host 半侧，空 `apply`，只保证插件行可挂载。
+- `lib/client.js`：浏览器半侧，向 `shell.overlay` 槽注册固定定位的余额角标。
