@@ -10,7 +10,7 @@
   name: "@deepseek-ai/dsh-plugin-market"
   config:
     indexes:
-      - http://127.0.0.1:8787/index.json
+      - https://classic-takeoff.github.io/DSH_Plugins_Source/index.json
     # Optional knobs, shown with their defaults:
     # fetchTimeoutMs: 15000
     # maxBytes: 134217728
