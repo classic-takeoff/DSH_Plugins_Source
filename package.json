@@ -1,0 +1,23 @@
+{
+  "name": "dsh-plugin-index",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "A plugin market index source for DeepSeek Harness: catalog -> format-1 index.json -> static host",
+  "license": "MIT",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "validate": "node scripts/validate.mjs",
+    "serve": "node scripts/serve.mjs",
+    "check": "node scripts/check.mjs",
+    "verify": "node scripts/check.mjs --spawn",
+    "test": "node --test --test-isolation=none \"test/*.test.mjs\""
+  },
+  "dependencies": {
+    "@deepseek-ai/dsh-plugin-market-index": "^0.2.1-alpha.4",
+    "semver": "^7.8.5"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

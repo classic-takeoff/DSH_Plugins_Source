@@ -1,0 +1,17 @@
+# Persistent index sources for the Plugin Market.
+#
+# Copy the entry below into a profile's user layer:
+#   Windows: %DSH_HOME%\profiles\<profile>\cordis.patch.yml
+#   macOS / Linux: $DSH_HOME/profiles/<profile>/cordis.patch.yml
+# then restart DeepSeek Harness. `indexes` is the whole ordered list, so keep any URL
+# already there. Without a restart you can add the same URL at runtime:
+#   Plugins -> Discover -> Add index source.
+- id: plugin-market
+  name: "@deepseek-ai/dsh-plugin-market"
+  config:
+    indexes:
+      - http://127.0.0.1:8787/index.json
+    # Optional knobs, shown with their defaults:
+    # fetchTimeoutMs: 15000
+    # maxBytes: 134217728
+    # cacheTtlMs: 600000
