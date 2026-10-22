@@ -83,13 +83,19 @@ window.__ModuleLoader__.load({
 			if (next) expandThinking();
 		}
 
-		/** Replace the reasoning body: one unwrapped line, horizontally scrollable. */
+		/** Replace the reasoning body with the complete text, wrapped like the DeepSeek web client. */
 		function ThinkingReasoningBody({ text, running, renderFactorySlot }) {
 			const on = useEnabled();
 			if (!on) return renderFactorySlot("conversation.chat.reasoning.content", { text, running });
 			return h("div", {
 				"data-dsh-thinking-body": "",
-				style: { whiteSpace: "nowrap", overflowX: "auto", overflowY: "hidden", maxWidth: "100%" }
+				style: {
+					whiteSpace: "pre-wrap",
+					overflowWrap: "anywhere",
+					wordBreak: "break-word",
+					lineHeight: "1.7",
+					maxWidth: "100%"
+				}
 			}, text);
 		}
 
@@ -112,8 +118,8 @@ window.__ModuleLoader__.load({
 					h("div", { style: { fontSize: "14px", lineHeight: "20px" } }, title),
 					h("div", { style: { color: "var(--dsw-alias-label-secondary)", marginTop: "4px", fontSize: "12px", lineHeight: "18px" } },
 						zh
-							? "仅展示思考内容：隐藏工具调用，思考不换行、完整显示"
-							: "Thinking only: hides tool calls and shows reasoning unwrapped")),
+							? "仅展示思考内容：隐藏工具调用，思考完整显示并正常换行"
+							: "Thinking only: hides tool calls and shows the complete reasoning with normal line wrapping")),
 				h(Switch, {
 					checked: on,
 					label: title,
