@@ -1,0 +1,146 @@
+{
+  "indexUrl": "http://127.0.0.1:8787/index.json",
+  "title": {
+    "en": "DeepSeek Harness Plugin Index",
+    "zh-cn": "DeepSeek Harness 插件索引"
+  },
+  "description": {
+    "en": "A starter plugin market for DeepSeek Harness: official bundles plus the optional Schedule bundle. Replace this catalog with your own plugins.",
+    "zh-cn": "DeepSeek Harness 的起步插件市场：官方组合包与可选的 Schedule 组合包。把这里的目录换成你自己的插件即可。"
+  },
+  "metadata": {
+    "categories": {
+      "core": {
+        "title": {
+          "en": "Core",
+          "zh-cn": "核心"
+        }
+      },
+      "interface": {
+        "title": {
+          "en": "Interface",
+          "zh-cn": "界面"
+        }
+      },
+      "feature": {
+        "title": {
+          "en": "Feature",
+          "zh-cn": "功能"
+        }
+      }
+    },
+    "labels": {
+      "official": {
+        "title": {
+          "en": "Official",
+          "zh-cn": "官方"
+        }
+      },
+      "experimental": {
+        "title": {
+          "en": "Experimental",
+          "zh-cn": "实验性"
+        }
+      }
+    },
+    "sortKeys": {
+      "featured": {
+        "title": {
+          "en": "Featured",
+          "zh-cn": "推荐"
+        },
+        "order": "desc"
+      }
+    }
+  },
+  "plugins": [
+    {
+      "name": "@deepseek-ai/dsh-experimental-schedule-bundle",
+      "title": {
+        "en": "Schedule",
+        "zh-cn": "定时任务"
+      },
+      "description": {
+        "en": "Optional bundle that adds Schedule, its task page, and time context to the Web composition.",
+        "zh-cn": "可选组合包：为 Web 组合加上「定时任务」、任务页面与时间上下文。"
+      },
+      "category": "feature",
+      "labels": [
+        "experimental"
+      ],
+      "keywords": [
+        "schedule",
+        "cron",
+        "reminder",
+        "定时",
+        "任务"
+      ],
+      "icon": "assets/schedule.svg",
+      "author": "DeepSeek",
+      "sortKeys": {
+        "featured": 100
+      }
+    },
+    {
+      "name": "@deepseek-ai/dsh-experimental-plugin-market-bundle",
+      "title": {
+        "en": "Plugin Market (Discover)",
+        "zh-cn": "插件市场（发现）"
+      },
+      "description": {
+        "en": "Experimental custom plugin markets: a Discover tab that browses and installs bundles from plugin market indexes.",
+        "zh-cn": "实验性自定义插件市场：在插件页提供「发现」标签页，浏览并安装索引中的组合包。"
+      },
+      "category": "feature",
+      "labels": [
+        "official",
+        "experimental"
+      ],
+      "keywords": [
+        "market",
+        "discover",
+        "install",
+        "市场",
+        "发现"
+      ],
+      "author": "DeepSeek",
+      "sortKeys": {
+        "featured": 90
+      }
+    },
+    {
+      "name": "@deepseek-ai/dsh-base",
+      "title": {
+        "en": "Base",
+        "zh-cn": "基础核心"
+      },
+      "description": {
+        "en": "The shared DSH core as a profile bundle: every profile's first patch layer, inserting the base plugin rows over the empty profile root.",
+        "zh-cn": "DSH 共享核心的组合包：每个 profile 的第一层补丁，在空 profile 之上插入基础插件行。"
+      },
+      "category": "core",
+      "labels": [
+        "official"
+      ],
+      "versions": "latest",
+      "author": "DeepSeek"
+    },
+    {
+      "name": "@deepseek-ai/dsh-web-app",
+      "title": {
+        "en": "Web App",
+        "zh-cn": "Web 应用"
+      },
+      "description": {
+        "en": "The DSH browser-surface bundle: the web patch layer over dsh-base plus the runtime glue.",
+        "zh-cn": "DSH 浏览器界面组合包：dsh-base 之上的 Web 补丁层与运行时粘合。"
+      },
+      "category": "interface",
+      "labels": [
+        "official"
+      ],
+      "versions": "latest",
+      "author": "DeepSeek"
+    }
+  ]
+}

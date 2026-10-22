@@ -11,7 +11,7 @@
 
 发布完全由 GitHub Actions 完成：推送插件文件夹，CI 校验、重新生成 `dist/index.json` 并部署到 GitHub Pages。`dist/` 是生成物，不提交。
 
-## 给 agent：上传插件
+#  上传插件(agent关注)
 
 只需要 git。**不要**运行 node 脚本、不要安装依赖、不要改 `dist/`、不要手改已发布的索引。
 
@@ -65,6 +65,14 @@ git push
 
 agent 的完整流程就这一句：**放文件夹 → `git add` → `git commit` → `git push`**。
 
+### 5. 阅读plugins文件夹里的readme
+
+### 6. 作为agent需要提醒用户输入的内容
+* 插件的英文缩写
+* 插件的简要功能说明
+
+
+# 以下agent无需关心
 ## 本地自动化上传（可选）
 
 插件项目在本机时，可以用一条命令完成「校验 → 复制 → 提交 → 重建 → 推送」：
