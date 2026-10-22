@@ -1,71 +1,101 @@
 # DSH Plugins Source
 
-A DeepSeek Harness plugin market index whose content is the plugin packages committed to this repository.
+A DeepSeek Harness plugin market index built from the package folders in `plugins/`.
 
 | | |
 |---|---|
 | Index source | `https://classic-takeoff.github.io/DSH_Plugins_Source/index.json` |
 | Human preview | `https://classic-takeoff.github.io/DSH_Plugins_Source/` |
 | Install | DSH → **Plugins → Discover → Add index source** → paste the index URL |
-| Source of truth | `plugins/<name>/` — one folder per plugin |
+| Plugin storage | `plugins/<name>/` — one folder per plugin |
 
-Pushes to `main` (or `master`) run the tests, rebuild the index from `plugins/`, validate it with the same parser DSH uses, and deploy it to GitHub Pages. `dist/` is build output and is never committed.
+Publishing is done entirely by GitHub Actions: push a plugin folder, CI validates it, rebuilds `dist/index.json` and deploys it to Pages. `dist/` is generated and is never committed.
 
-## For agents
+## For agents: upload a plugin
 
-Contract for adding, updating or inspecting a plugin.
+You only need git. Do **not** run node scripts, install dependencies, edit `dist/`, or hand-edit the published index.
 
-**Add a plugin** — validates, copies, commits, rebuilds, pushes; CI deploys:
+### 1. Package the plugin locally into one folder
 
-```powershell
-node scripts/publish-plugin.mjs C:\path\to\plugin --dry-run   # optional check, changes nothing
-node scripts/publish-plugin.mjs C:\path\to\plugin
+The folder must be directly installable — everything the plugin needs at runtime is already inside it, with no build step left to run:
+
+```text
+dsh-hello/
+├─ package.json          # required
+├─ cordis.patch.yml      # required, named by dsh.bundle.patch
+├─ lib/index.js          # required, the package entry point
+├─ dsh-index.json        # optional display metadata
+├─ icon.svg              # optional icon
+└─ README.md             # optional
 ```
 
-**Or do it by hand** — copy the package into `plugins/<name>/`, then:
+`package.json` must declare the bundle and an exact version:
+
+```json
+{
+  "name": "@acme/dsh-hello",
+  "version": "1.0.0",
+  "description": "Greets the model.",
+  "type": "module",
+  "main": "lib/index.js",
+  "dsh": { "bundle": { "patch": "./cordis.patch.yml" } },
+  "engines": { "dsh": ">=0.2.0" }
+}
+```
+
+Leave out `node_modules/`, `.git/`, caches, tests, and any source that still needs compiling.
+
+### 2. Put the folder in `plugins/<name>/`
+
+`<name>` is the package name without its scope, lower-case: `@acme/dsh-hello` → `plugins/dsh-hello/`. One folder per package; package names must be unique across `plugins/`.
+
+### 3. Commit and push
 
 ```powershell
-node scripts/build.mjs
-git add plugins/<name>
-git commit -m "feat(plugins): add <name>@<version>"
+git add plugins/dsh-hello
+git commit -m "feat(plugins): add @acme/dsh-hello@1.0.0"
 git push
 ```
 
-Rules the build enforces (violations fail the build; nothing is published):
+Push to `main` (or `master`); other branches do not deploy.
 
-- `plugins/<folder>/package.json` is valid JSON; `name` is a valid npm name; `version` is exact SemVer.
-- `dsh.bundle.patch` points at a file that exists in the folder (normally `./cordis.patch.yml`).
-- Dependency ranges must not use `workspace:`, `file:`, `link:` or `portal:`.
-- Package names are unique across folders; the folder name should be the package's short name (no scope).
-- `dist/` is generated — never edit it, never commit it.
+### 4. Let GitHub Actions publish
+
+The **Deploy plugin index** workflow runs the tests, validates every plugin folder, builds the index pinned to your commit, and deploys it. Nothing is published until the run is green. If it fails, read the failing step, fix the folder, commit and push again.
+
+That is the whole agent workflow: **folder → `git add` → `git commit` → `git push`**.
+
+## What CI validates
+
+Every push must satisfy these rules; a violation fails the run and publishes nothing:
+
+- `package.json` is valid JSON, `name` is a valid npm package name, `version` is an exact SemVer version.
+- `dsh.bundle.patch` names a file that exists in the folder.
+- Dependencies do not use `workspace:`, `file:`, `link:` or `portal:` ranges.
+- Package names are unique across `plugins/`.
+- Optional `dsh-index.json` only uses declared category, label and sort-key ids, with valid localized text.
+- The generated document passes plugin market index format 1.
+
+Failure messages name the folder and field, for example `plugins/dsh-hello/package.json: dsh.bundle.patch must name the bundle patch file`.
 
 ## Repository layout
 
 ```text
 plugin-index/
-├─ plugins/                    # one directory per installable DSH bundle package
-│  └─ <name>/                  # package.json, cordis.patch.yml, lib/, dsh-index.json, icon, README
-├─ index.config.json           # index title/description, install repository, category/label/sort declarations
-├─ lib/
-│  ├─ plugins.mjs              # plugin folder rules + format-1 document builder
-│  ├─ icons.mjs                # generated monogram icons
-│  └─ server.mjs               # static server used by local preview/checks
-├─ scripts/
-│  ├─ build.mjs                # plugins/ → dist/index.json, validated before writing
-│  ├─ publish-plugin.mjs       # copy a local plugin into plugins/, commit, rebuild, push
-│  ├─ validate.mjs             # validate an existing dist/index.json
-│  ├─ serve.mjs                # serve dist/ over HTTP
-│  └─ check.mjs                # HTTP + format + icon checks against a running URL
-├─ test/                       # node:test suites
-├─ docs/format-1.md            # the index format, field by field
-└─ .github/workflows/pages.yml # test → build → validate → deploy to Pages
+├─ plugins/                 # one directory per installable DSH bundle package (agents upload here)
+├─ index.config.json        # index title/description, install repository, category/label/sort declarations
+├─ lib/                     # plugin folder rules and the format-1 document builder
+├─ scripts/                 # build/validate/serve/check — used by CI and maintainers
+├─ test/                    # node:test suites
+├─ docs/format-1.md         # the index format, field by field
+└─ .github/workflows/pages.yml  # test → build → validate → deploy to Pages
 ```
 
 ## How the index is built
 
-1. `scripts/build.mjs` scans every direct child folder of `plugins/` that has a `package.json`.
-2. Each plugin becomes one index entry. Display metadata comes from `plugins/<name>/dsh-index.json`, falling back to `package.json` fields and a generated icon.
-3. The entry's single version is pinned to the commit being built and to `plugins/<name>`:
+1. CI scans every direct child folder of `plugins/` that has a `package.json`.
+2. Each plugin becomes one index entry; display metadata comes from its `dsh-index.json`, falling back to `package.json` fields and a generated icon.
+3. The entry's version is pinned to the commit being built and to `plugins/<name>`:
 
    ```json
    {
@@ -81,41 +111,17 @@ plugin-index/
    ```
 
    DSH installs it as `git+https://github.com/classic-takeoff/DSH_Plugins_Source.git#<commit>&path:/plugins/<name>`.
-4. The document is validated with `parseMarketIndex` (the parser DSH ships) before `dist/` is written. The commit defaults to `HEAD`; CI passes the pushed SHA explicitly.
+4. The document is validated with the same parser DSH ships before `dist/` is written.
 
-Only one version per plugin is listed: the `version` in its `package.json`. Bumping the version and pushing replaces the listed version. If you need a version history, publish the package to npm instead.
+Only one version per plugin is listed: the `version` in its `package.json`. Bumping the version and pushing replaces the listed version.
 
-## Plugin package requirements
+## Plugin display metadata (optional)
 
-```text
-plugins/dsh-hello/
-├─ package.json        # required
-├─ cordis.patch.yml    # required, named by dsh.bundle.patch
-├─ lib/index.js        # required, the package entry point
-├─ dsh-index.json      # optional display metadata
-├─ icon.svg            # optional icon
-└─ README.md           # optional
-```
-
-`package.json` must look like a publishable DSH bundle:
-
-```json
-{
-  "name": "@acme/dsh-hello",
-  "version": "1.0.0",
-  "description": "Greets the model.",
-  "type": "module",
-  "main": "lib/index.js",
-  "dsh": { "bundle": { "patch": "./cordis.patch.yml" } },
-  "engines": { "dsh": ">=0.2.0" }
-}
-```
-
-`dsh-index.json` is optional; every field is optional:
+`plugins/<name>/dsh-index.json`, every field optional:
 
 | Field | Meaning |
 |---|---|
-| `title` | Localized title (a string means English, or an object with lowercase language ids and a required `en`, e.g. `{"en": "Hello", "zh-cn": "你好"}`). |
+| `title` | Localized title: a string means English, or an object with lowercase language ids and a required `en`, e.g. `{"en": "Hello", "zh-cn": "你好"}`. |
 | `description` | Localized description, same rules. |
 | `category` | One id declared in `index.config.json` → `metadata.categories`. |
 | `labels` | Ids declared in `metadata.labels`; each may appear once. |
@@ -125,48 +131,27 @@ plugins/dsh-hello/
 | `author` | Display author. |
 | `homepage` | Absolute `http(s)` URL. |
 
-`index.config.json` also declares the index title, the install repository (`repository`) and the URL used by local validation (`indexUrl`). Adding a category or label means adding it there first; otherwise the build rejects the plugin entry.
+Categories, labels and sort keys are declared once in `index.config.json`. If a plugin needs a new one, add the declaration in the same commit; an undeclared id fails the build. Omitting `category` and `labels` is always valid.
 
-## Publishing a plugin
+## Updating or removing a plugin
 
-`scripts/publish-plugin.mjs` does the whole loop:
+- **Update**: replace the contents of `plugins/<name>/`, bump `version` in its `package.json`, then `git add plugins/<name> && git commit -m "feat(plugins): update <name>@<version>" && git push`.
+- **Remove**: `git rm -r plugins/<name>`, commit and push. The next build drops the entry.
 
-1. validates the source directory with the same rules as the build;
-2. copies it to `plugins/<name>/` (excluding `node_modules/`, `.git/`, `dist/`, caches);
-3. re-scans `plugins/` and refuses duplicates or invalid packages;
-4. commits `feat(plugins): add <name>@<version>`;
-5. rebuilds and validates the index against the new commit;
-6. pushes, which triggers GitHub Actions.
+## Maintainers: local checks (optional)
 
-Flags:
-
-| Flag | Effect |
-|---|---|
-| `--dry-run` | Validate and print the plan; change nothing. |
-| `--no-push` | Copy and commit, but do not push. |
-| `--no-commit` | Copy only; prints the git commands to run yourself. |
-| `--update` | Replace an existing `plugins/<name>/` folder. |
-| `--allow-dirty` | Allow unrelated uncommitted changes in this repository. |
-| `--message TEXT` | Custom commit message. |
-
-The repository must be clean (commit or stash first) unless `--allow-dirty` is passed, and you must be on `main` or `master` for CI to deploy.
-
-### Updating or removing a plugin
-
-- **Update**: bump `version` in the plugin's `package.json`, then `node scripts/publish-plugin.mjs <path> --update`.
-- **Remove**: delete `plugins/<name>/`, commit, push. The next build drops the entry.
-
-## Verify locally
+These are not part of the upload flow; CI runs the same steps.
 
 ```powershell
-node scripts/build.mjs            # builds and validates dist/index.json
-node scripts/validate.mjs         # re-validate the built file
+pnpm install
+node scripts/build.mjs
+node scripts/validate.mjs
 node scripts/serve.mjs            # http://127.0.0.1:8787/index.json
 node scripts/check.mjs --spawn    # HTTP contract, format, every icon
 node --test --test-isolation=none "test/*.test.mjs"
 ```
 
-`build.mjs` reads the commit and timestamp from git; in an environment without git, pass `--commit <40-hex-sha> --timestamp <unix-seconds>`.
+`build.mjs` reads the commit and timestamp from git; without git, pass `--commit <40-hex-sha> --timestamp <unix-seconds>`.
 
 ## Continuous deployment
 
@@ -185,15 +170,13 @@ The site must be publicly reachable: DSH fetches the index anonymously, so a pri
 
 | Symptom | Cause / fix |
 |---|---|
-| Discover shows no plugins | `plugins/` is empty, or the workflow has not finished. Check the Actions run; DSH caches a successful read for 10 minutes (`cacheTtlMs`) — press refresh. |
-| Install fails | The pinned commit must contain `plugins/<name>`. Re-running the workflow rebuilds against the new commit; a force-push invalidates old pins. |
-| CI fails at `Test` | Run the test command above locally; fix before pushing. |
-| `publish` aborts: working tree dirty | Commit or stash, or pass `--allow-dirty` (the new plugin commit would otherwise include those changes). |
-| `publish` aborts: could not read Username | Log in once with `git credential-manager github login`, or push yourself. |
-| Icon 404 | The icon must be a file inside the plugin folder, or an `https:`/`data:` URL. Rebuild and redeploy after changing it. |
+| Actions run is red | Read the failing step; the message names the folder and field. Fix the folder, commit and push again. |
+| Discover shows no plugins | `plugins/` is empty, or the workflow has not finished. DSH caches a successful read for 10 minutes (`cacheTtlMs`) — press refresh. |
+| Install fails | The pinned commit must contain `plugins/<name>`. Pushing again rebuilds against the new commit; a force-push invalidates old pins. |
+| Icon 404 | The icon must be a file inside the plugin folder, or an `https:`/`data:` URL. Push the fix; CI redeploys. |
 | `index.config.json: … is not a supported field` | Only `title`, `description`, `repository`, `indexUrl`, `metadata` are allowed. |
-| Build: `cannot read git metadata` | Run inside the clone, or pass `--commit` and `--timestamp`. |
+| `git push` rejected | Push to `main`/`master`; a PR or another branch does not deploy. |
 
 ## Index format
 
-The published document follows plugin market index format 1. Field-by-field rules, including the git source rules and icon constraints, are in [docs/format-1.md](docs/format-1.md).
+The published document follows plugin market index format 1. Field-by-field rules, including git source rules and icon constraints, are in [docs/format-1.md](docs/format-1.md).

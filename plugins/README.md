@@ -18,7 +18,8 @@ plugins/
 - `package.json` 是合法 JSON，`name` 是合法 npm 包名，`version` 是精确 SemVer。
 - 声明 `dsh.bundle.patch`（例如 `"./cordis.patch.yml"`），且该文件存在——否则装不成组合包。
 - 依赖里不能出现 `workspace:`、`file:`、`link:`、`portal:`，git 安装无法解析这些协议。
-- 目录里不要放 `node_modules/`、`.git/`、`dist/`、缓存；发布脚本会自动排除。
+- 目录里不要放 `node_modules/`、`.git/`、`dist/`、缓存，也不要放还需要编译的源码。
+- 包名在 `plugins/` 内唯一。
 
 ## dsh-index.json（可选）
 
@@ -37,15 +38,21 @@ plugins/
 ```
 
 - 语言键必须是小写（`zh-cn`，不是 `zh-CN`），且必须含 `en`。
-- `category`、`labels`、`sortKeys` 的 id 必须在 `../index.config.json` 的 `metadata` 里声明。
+- `category`、`labels`、`sortKeys` 的 id 必须在 `../index.config.json` 的 `metadata` 里声明；省略这些字段总是合法的。
 - 不写 `dsh-index.json` 时：标题回退到包名短名，描述回退到 `package.json` 的 `description`，图标自动生成。
 
-## 怎么加插件
+## 怎么上传
 
-推荐用发布任务（校验 → 复制 → 提交 → 构建 → 推送）：
+1. 在本地把插件打包成一个**可直接安装**的文件夹（运行所需文件都在里面，不再需要构建）。
+2. 复制成 `plugins/<name>/`。
+3. 只用 git 提交并推送：
 
 ```powershell
-node scripts/publish-plugin.mjs C:\dev\my-plugin
+git add plugins/<name>
+git commit -m "feat(plugins): add <name>@<version>"
+git push
 ```
 
-也可以手动：把插件目录复制成 `plugins/<name>/`，然后 `node scripts/build.mjs` 校验，提交并推送。GitHub Actions 会用这次推送的 commit 重新生成索引并发布。
+4. GitHub Actions 会校验、重建索引并部署。运行失败就按报错修文件夹，再提交推送一次。
+
+不需要运行 node 脚本，也不需要安装依赖。

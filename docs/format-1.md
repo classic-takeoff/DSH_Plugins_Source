@@ -95,4 +95,4 @@ DSH 用 `@deepseek-ai/dsh-plugin-market-index` 的 `parseMarketIndex(document, i
 
 ## 本仓库的对应实现
 
-`plugins/<name>/` 目录 → `scripts/build.mjs`（每个条目固定到 `--commit` 与 `plugins/<name>` 路径）→ `parseMarketIndex` 校验 → 通过后才写 `dist/`。`scripts/validate.mjs` 可以对任意已生成文件重复这一步；`scripts/check.mjs --spawn` 还会校验 HTTP 层（不重定向、JSON Content-Type、严格 UTF-8）与每个图标的可加载性。`scripts/publish-plugin.mjs` 负责把本地插件目录复制进 `plugins/`、提交、重建并推送。
+`plugins/<name>/` 目录 → `scripts/build.mjs`（每个条目固定到 `--commit` 与 `plugins/<name>` 路径）→ `parseMarketIndex` 校验 → 通过后才写 `dist/`。`scripts/validate.mjs` 可以对任意已生成文件重复这一步；`scripts/check.mjs --spawn` 还会校验 HTTP 层（不重定向、JSON Content-Type、严格 UTF-8）与每个图标的可加载性。
