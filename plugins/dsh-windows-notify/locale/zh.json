@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Windows 原生通知",
+    "description": "任务完成后弹出 Windows 原生 Toast，支持在通知内直接输入并回复，点击正文打开对应会话。"
+  }
+}

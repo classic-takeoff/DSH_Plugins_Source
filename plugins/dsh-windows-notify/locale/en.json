@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Windows Notifications",
+    "description": "Native Windows toast on task completion with an inline reply box; clicking the toast opens the matching session."
+  }
+}

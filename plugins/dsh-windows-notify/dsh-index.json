@@ -1,0 +1,23 @@
+{
+  "title": {
+    "en": "Windows Notifications",
+    "zh-cn": "Windows 原生通知"
+  },
+  "description": {
+    "en": "Native Windows toast notifications for completed tasks, with an inline reply box. Replies go through the session's normal message path and clicking the toast opens that session.",
+    "zh-cn": "任务完成后发送 Windows 原生 Toast，通知内可直接输入并回复；回复走会话现有消息发送逻辑，点击通知正文打开对应会话。"
+  },
+  "category": "interface",
+  "labels": [
+    "experimental"
+  ],
+  "keywords": [
+    "windows",
+    "toast",
+    "notification",
+    "reply",
+    "desktop"
+  ],
+  "icon": "icon.svg",
+  "author": "classic-takeoff"
+}
