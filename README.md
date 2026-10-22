@@ -82,6 +82,25 @@ node scripts/publish-plugin.mjs C:\dev\my-plugin
 
 GitHub Actions still validates and deploys after the push; if the run fails, fix the plugin and run the task again.
 
+## Harness automation task (scheduled upload)
+
+`inbox/` is the drop zone for hands-free uploads (git-ignored):
+
+```text
+plugin-index/inbox/
+└─ dsh-hello/        # one complete plugin folder, same layout as plugins/<name>/
+```
+
+The Harness **Automation** page lists a task named **插件自动上传**: it runs
+
+```powershell
+node scripts/upload-inbox.mjs
+```
+
+on its schedule (hourly by default). The script copies every folder in `inbox/` into `plugins/`, commits once, rebuilds and validates the index against the new commit, pushes, then moves the uploaded folders to `inbox/.done/`. An empty inbox prints `inbox is empty`.
+
+Edit the interval or delete the task from **Automation** in the sidebar; the same command also works by hand. The task is bound to the session that created it (this one); deleting the task does not remove uploaded plugins.
+
 ## What CI validates
 
 Every push must satisfy these rules; a violation fails the run and publishes nothing:

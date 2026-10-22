@@ -82,6 +82,25 @@ node scripts/publish-plugin.mjs C:\dev\my-plugin
 
 推送后仍然由 GitHub Actions 校验并部署；失败就按报错修插件，再跑一次。
 
+## Harness 自动化任务（定时上传）
+
+`inbox/` 是免手动上传的投放目录（已加入 `.gitignore`）：
+
+```text
+plugin-index/inbox/
+└─ dsh-hello/        # 与 plugins/<name>/ 相同的完整插件文件夹
+```
+
+DSH 的「自动化任务」里有一条 **插件自动上传**：它按设定频率（默认每小时）运行
+
+```powershell
+node scripts/upload-inbox.mjs
+```
+
+这个脚本会把 `inbox/` 里的所有插件一次性复制到 `plugins/`、提交、用新提交重建并校验索引、推送；成功后把用过的文件夹移到 `inbox/.done/`，下次不会重复上传。`inbox/` 为空时只打印 `inbox is empty`。
+
+在侧栏 **自动化任务** 里可以修改它的运行频率或删除它；也可以随时手动执行上面的命令。任务绑定的是创建它的会话（本会话），删除任务不影响已上传的插件。
+
 ## CI 校验什么
 
 每次推送都要满足以下规则，违反任意一条都会让运行失败且不发布：
