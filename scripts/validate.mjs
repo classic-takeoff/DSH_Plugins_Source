@@ -34,9 +34,8 @@ function parseArgs(argv) {
 
 const args = parseArgs(process.argv.slice(2));
 const file = path.resolve(ROOT, args._[0] ?? 'dist/index.json');
-const sourcesPath = path.join(ROOT, 'sources', 'index.json');
-const sources = JSON.parse(await fs.readFile(sourcesPath, 'utf8'));
-const indexUrl = String(args['index-url'] ?? sources.indexUrl ?? 'http://127.0.0.1:8787/index.json');
+const config = JSON.parse(await fs.readFile(path.join(ROOT, 'index.config.json'), 'utf8'));
+const indexUrl = String(args['index-url'] ?? config.indexUrl ?? 'http://127.0.0.1:8787/index.json');
 
 let document;
 try {

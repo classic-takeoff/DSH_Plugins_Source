@@ -1,21 +1,22 @@
 #!/usr/bin/env node
 /**
- * Build the format-1 index from the catalog and the npm registry.
+ * Build the plugin market index from `plugins/` and validate it.
  *
- *   node scripts/build.mjs [--sources sources/index.json] [--out dist]
- *                          [--registry https://registry.npmjs.org]
- *                          [--index-url http://127.0.0.1:8787/index.json]
- *                          [--refresh] [--offline]
+ *   node scripts/build.mjs [--plugins DIR] [--config FILE] [--out DIR]
+ *                          [--commit SHA] [--timestamp UNIX_SECONDS]
+ *                          [--index-url URL] [--repo-url URL]
  *
- * Validation happens in memory, before anything is written: a bad catalog never reaches dist/.
+ * Every index entry is pinned to `--commit` and its `plugins/<folder>` path, so the
+ * commit must contain the plugin folders. The default is HEAD; CI passes the pushed
+ * commit explicitly. Validation runs in memory before dist/ is touched.
  */
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { parseMarketIndex, MarketIndexError } from '@deepseek-ai/dsh-plugin-market-index';
-import { buildDocument, loadCatalog, packageSlug, shortName } from '../lib/catalog.mjs';
-import { monogramSvg, imageContentType } from '../lib/icons.mjs';
-import { DEFAULT_REGISTRY, mapConcurrent, normalizeRegistry, readPackageDocument } from '../lib/registry.mjs';
+import { MarketIndexError, parseMarketIndex } from '@deepseek-ai/dsh-plugin-market-index';
+import { buildDocument, iconReference, loadConfig, parseJson, scanPlugins } from '../lib/plugins.mjs';
+import { monogramSvg } from '../lib/icons.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DEFAULT_INDEX_URL = 'http://127.0.0.1:8787/index.json';
@@ -39,15 +40,23 @@ function parseArgs(argv) {
   return args;
 }
 
+function git(args) {
+  try {
+    return execFileSync('git', args, { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+  } catch (error) {
+    throw new Error(`cannot read git metadata (${error.code ?? error.message}); pass --commit <40-hex-sha> and --timestamp <unix-seconds> explicitly`);
+  }
+}
+
 const escapeHtml = (text) => text.replace(/[<>&"]/gu, (character) => ({
   '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;',
 })[character]);
 
-function renderLandingPage(document, indexUrl) {
+function renderLandingPage(document, indexUrl, repository) {
   const cards = document.plugins.map((plugin) => {
     const title = plugin.title.en;
     const description = plugin.description?.en ?? '';
-    const latest = plugin.versions[0]?.version ?? '';
+    const version = plugin.versions[0]?.version ?? '';
     const tag = plugin.metadata.category === undefined ? '' : `<span class="tag">${escapeHtml(plugin.metadata.category)}</span>`;
     return `<li class="card">
       <img src="${escapeHtml(plugin.icon)}" alt="" width="48" height="48" loading="lazy">
@@ -56,11 +65,11 @@ function renderLandingPage(document, indexUrl) {
         <p class="pkg">${escapeHtml(plugin.name)}</p>
         <p class="desc">${escapeHtml(description)}</p>
       </div>
-      <p class="meta">${escapeHtml(latest)}<br><span>${String(plugin.versions.length)} version${plugin.versions.length === 1 ? '' : 's'}</span></p>
+      <p class="meta">${escapeHtml(version)}</p>
     </li>`;
   }).join('\n');
   const list = document.plugins.length === 0
-    ? `<p class="empty">No plugins yet. Add entries to <code>sources/index.json</code>, run <code>node scripts/build.mjs</code>, and push.</p>`
+    ? `<p class="empty">No plugins yet. Add a package under <code>plugins/</code> (or run <code>node scripts/publish-plugin.mjs &lt;path&gt;</code>), push, and the index rebuilds here.</p>`
     : `<ul>\n${cards}\n</ul>`;
   return `<!doctype html>
 <html lang="en">
@@ -91,7 +100,7 @@ function renderLandingPage(document, indexUrl) {
 <p class="sub">${escapeHtml(document.description?.en ?? 'A DeepSeek Harness plugin index.')}</p>
 ${list}
 <footer>
-  <p>This page is a human-readable preview. The machine-readable index is <a href="index.json">index.json</a>.</p>
+  <p>Human-readable preview. Machine-readable index: <a href="index.json">index.json</a> · source: <a href="${escapeHtml(repository)}">${escapeHtml(repository.replace(/^https:\/\/github\.com\//u, ''))}</a></p>
   <p>In DeepSeek Harness: <code>Plugins → Discover → Add index source</code>, then paste <code>${escapeHtml(indexUrl)}</code>.</p>
 </footer>
 </body>
@@ -102,64 +111,30 @@ ${list}
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   if (args.help) {
-    console.log('usage: node scripts/build.mjs [--sources FILE] [--out DIR] [--registry URL] [--index-url URL] [--refresh] [--offline]');
+    console.log('usage: node scripts/build.mjs [--plugins DIR] [--config FILE] [--out DIR] [--commit SHA] [--timestamp SECONDS] [--index-url URL] [--repo-url URL]');
     return;
   }
 
-  const sourcesPath = path.resolve(ROOT, args.sources ?? 'sources/index.json');
+  const pluginsRoot = path.resolve(ROOT, args.plugins ?? 'plugins');
+  const configPath = path.resolve(ROOT, args.config ?? 'index.config.json');
   const outDir = path.resolve(ROOT, args.out ?? 'dist');
-  if (outDir === ROOT || !outDir.startsWith(ROOT + path.sep)) {
-    throw new Error(`refusing to write outside the project: ${outDir}`);
-  }
-  const cacheDir = path.join(ROOT, '.cache', 'registry');
-  const registry = normalizeRegistry(args.registry ?? DEFAULT_REGISTRY);
+  if (outDir === ROOT || !outDir.startsWith(ROOT + path.sep)) throw new Error(`refusing to write outside the project: ${outDir}`);
 
-  const raw = JSON.parse(await fs.readFile(sourcesPath, 'utf8'));
-  const catalog = loadCatalog(raw);
-  const indexUrl = String(args['index-url'] ?? raw.indexUrl ?? DEFAULT_INDEX_URL);
+  const config = loadConfig(parseJson(await fs.readFile(configPath, 'utf8'), 'index.config.json'));
+  const repository = args['repo-url'] ?? config.repository;
+  const indexUrl = String(args['index-url'] ?? config.indexUrl ?? DEFAULT_INDEX_URL);
   if (!URL.canParse(indexUrl)) throw new Error(`--index-url must be an absolute URL, got ${indexUrl}`);
 
-  console.log(`catalog: ${String(catalog.plugins.length)} plugins from ${path.relative(ROOT, sourcesPath)}`);
-  const npmPlugins = catalog.plugins.filter((plugin) => plugin.git === undefined);
-  const documents = {};
-  await mapConcurrent(npmPlugins, 6, async (plugin) => {
-    const document = await readPackageDocument(plugin.name, {
-      registry: plugin.registry ?? registry,
-      cacheDir,
-      refresh: args.refresh === true,
-      offline: args.offline === true,
-    });
-    documents[plugin.name] = document;
-    process.stdout.write(`  fetched ${plugin.name}\n`);
-  });
+  const commit = String(args.commit ?? git(['rev-parse', 'HEAD']));
+  const publishTimestamp = Number(args.timestamp ?? git(['log', '-1', '--format=%ct']));
+  const plugins = await scanPlugins(pluginsRoot);
+  console.log(`plugins: ${String(plugins.length)} from ${path.relative(ROOT, pluginsRoot) || '.'}; commit ${commit.slice(0, 7)}`);
 
-  // Resolve icons: pass-through references, copied local files, or a generated monogram.
-  const iconFiles = new Map();
-  const icons = {};
-  for (const plugin of catalog.plugins) {
-    const slug = packageSlug(plugin.name);
-    if (plugin.icon !== undefined && (plugin.icon.startsWith('data:') || /^https?:/u.test(plugin.icon))) {
-      icons[plugin.name] = plugin.icon;
-      continue;
-    }
-    if (plugin.icon !== undefined) {
-      const source = path.resolve(ROOT, plugin.icon);
-      if (!source.startsWith(ROOT + path.sep)) throw new Error(`icon must stay inside the project: ${plugin.icon}`);
-      const type = imageContentType(source);
-      if (type === undefined) throw new Error(`icon must be .svg, .png, .jpg, .jpeg, or .webp: ${plugin.icon}`);
-      const extension = path.extname(source).toLowerCase();
-      const name = `icons/${slug}${extension}`;
-      iconFiles.set(name, await fs.readFile(source));
-      icons[plugin.name] = name;
-      continue;
-    }
-    const name = `icons/${slug}.svg`;
-    iconFiles.set(name, Buffer.from(monogramSvg(plugin.name), 'utf8'));
-    icons[plugin.name] = name;
-  }
-
-  const document = buildDocument(catalog, documents, icons, {
-    onSkipped: (name, version) => console.log(`  skip ${name}@${version} (not a bundle)`),
+  const document = buildDocument({
+    config: { ...config, repository },
+    plugins,
+    commit,
+    publishTimestamp,
   });
 
   try {
@@ -173,26 +148,32 @@ async function main() {
     throw error;
   }
 
+  const iconFiles = new Map();
+  for (const plugin of plugins) {
+    const reference = iconReference(plugin);
+    const name = reference.slice('icons/'.length);
+    if (plugin.meta.icon?.kind === 'file') {
+      iconFiles.set(name, await fs.readFile(plugin.meta.icon.path));
+    } else if (plugin.meta.icon === undefined) {
+      iconFiles.set(name, Buffer.from(monogramSvg(plugin.name), 'utf8'));
+    }
+  }
+
   await fs.rm(outDir, { recursive: true, force: true });
   await fs.mkdir(path.join(outDir, 'icons'), { recursive: true });
-  for (const [name, body] of iconFiles) await fs.writeFile(path.join(outDir, name), body);
+  for (const [name, body] of iconFiles) await fs.writeFile(path.join(outDir, 'icons', name), body);
   await fs.writeFile(path.join(outDir, 'index.json'), `${JSON.stringify(document, null, 2)}\n`);
-  await fs.writeFile(path.join(outDir, 'index.html'), renderLandingPage(document, indexUrl));
+  await fs.writeFile(path.join(outDir, 'index.html'), renderLandingPage(document, indexUrl, repository));
   await fs.writeFile(path.join(outDir, '.nojekyll'), '');
 
-  const bytes = Buffer.byteLength(JSON.stringify(document));
   console.log('');
-  for (const plugin of document.plugins) {
-    const latest = plugin.versions[0]?.version ?? '-';
-    console.log(`  ${shortName(plugin.name).padEnd(34)} ${latest.padEnd(16)} ${String(plugin.versions.length).padStart(2)} version(s)`);
+  for (const plugin of plugins) {
+    console.log(`  ${plugin.folder.padEnd(24)} ${plugin.version.padEnd(12)} ${plugin.name}`);
   }
   console.log('');
-  console.log(`wrote ${path.relative(ROOT, outDir)}\\index.json (${String(document.plugins.length)} plugins, ${(bytes / 1024).toFixed(1)} KiB)`);
-  if (document.plugins.length === 0) {
-    console.log('the catalog is empty: add entries under sources/index.json, then rebuild');
-  }
+  console.log(`wrote ${path.relative(ROOT, outDir)}\\index.json (${String(plugins.length)} plugins)`);
+  if (plugins.length === 0) console.log('plugins/ is empty: add a folder or run node scripts/publish-plugin.mjs <path>');
   console.log(`validated against ${indexUrl}`);
-  console.log(`next: node scripts/serve.mjs   (serves ${indexUrl})`);
 }
 
 try {

@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "A plugin market index source for DeepSeek Harness: catalog -> format-1 index.json -> static host",
+  "description": "Plugin index for DeepSeek Harness: plugins/ folders -> format-1 index.json -> GitHub Pages",
   "license": "MIT",
   "scripts": {
     "build": "node scripts/build.mjs",

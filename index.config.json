@@ -1,0 +1,39 @@
+{
+  "title": {
+    "en": "DSH Plugins Source",
+    "zh-cn": "DSH 插件源"
+  },
+  "description": {
+    "en": "Installable DeepSeek Harness bundles published from this repository. Every entry is pinned to the commit that contains its plugin folder.",
+    "zh-cn": "由本仓库发布的可安装 DeepSeek Harness 组合包。每个条目都固定到包含该插件目录的提交。"
+  },
+  "repository": "https://github.com/classic-takeoff/DSH_Plugins_Source",
+  "indexUrl": "https://classic-takeoff.github.io/DSH_Plugins_Source/index.json",
+  "metadata": {
+    "categories": {
+      "tools": {
+        "title": { "en": "Tools", "zh-cn": "工具" }
+      },
+      "interface": {
+        "title": { "en": "Interface", "zh-cn": "界面" }
+      },
+      "workflow": {
+        "title": { "en": "Workflow", "zh-cn": "工作流" }
+      }
+    },
+    "labels": {
+      "stable": {
+        "title": { "en": "Stable", "zh-cn": "稳定" }
+      },
+      "experimental": {
+        "title": { "en": "Experimental", "zh-cn": "实验性" }
+      }
+    },
+    "sortKeys": {
+      "featured": {
+        "title": { "en": "Featured", "zh-cn": "推荐" },
+        "order": "desc"
+      }
+    }
+  }
+}

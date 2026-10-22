@@ -34,8 +34,9 @@ function parseArgs(argv) {
 }
 
 const args = parseArgs(process.argv.slice(2));
-const sources = JSON.parse(await fs.readFile(path.join(ROOT, 'sources', 'index.json'), 'utf8'));
-const url = String(args.url ?? sources.indexUrl ?? 'http://127.0.0.1:8787/index.json');
+const config = JSON.parse(await fs.readFile(path.join(ROOT, 'index.config.json'), 'utf8'));
+const localUrl = 'http://127.0.0.1:8787/index.json';
+const url = String(args.spawn ? localUrl : args.url ?? config.indexUrl ?? localUrl);
 const target = new URL(url);
 
 const failures = [];

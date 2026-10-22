@@ -1,180 +1,199 @@
-# DSH 插件索引源
+# DSH 插件源
 
-一个可以直接运行的 **DeepSeek Harness 插件市场索引源**：在 `sources/index.json` 里手写目录，从 npm registry 拉取真实的版本、发布时间与兼容性信息，生成[插件市场索引格式 1](docs/format-1.md) 的 `dist/index.json`，用静态服务器托管，再在 DSH 的「插件 → 发现」里添加这个 URL。
+一个 DeepSeek Harness 插件市场索引，内容就是本仓库里提交的插件包。
 
-目录默认是**空的**（`plugins: []`）：只声明了标题、分类、标签和排序键，没有任何占位插件。空索引是合法的，发现页显示 0 个插件；把自己的插件加进 `sources/index.json` 后重新构建即可。
+| | |
+|---|---|
+| 索引源 | `https://classic-takeoff.github.io/DSH_Plugins_Source/index.json` |
+| 人类预览 | `https://classic-takeoff.github.io/DSH_Plugins_Source/` |
+| 安装 | DSH → **插件 → 发现 → 添加索引源** → 粘贴上面的地址 |
+| 唯一事实来源 | `plugins/<name>/`，一个插件一个文件夹 |
 
-## 3 分钟上手
+推送到 `main`（或 `master`）后，工作流会跑测试、从 `plugins/` 重新生成索引、用 DSH 同一个解析器校验，并部署到 GitHub Pages。`dist/` 是构建产物，不提交。
 
-需要 Node.js 22+（`node --version`）。依赖只用于构建和校验，`dist/` 是纯静态文件。
+## 给 agent 的约定
 
-```powershell
-cd plugin-index
-pnpm install            # 或 npm install
-node scripts/build.mjs  # 生成 dist/index.json（构建前先校验，非法目录不会落盘）
-node scripts/serve.mjs  # http://127.0.0.1:8787/index.json
-```
+这是新增、更新、检查插件时的最小约定。
 
-另开一个终端自检（会自己起一个临时服务器）：
-
-```powershell
-node scripts/check.mjs --spawn
-```
-
-然后在 DSH 里：**插件 → 发现 → 添加索引源**，粘贴 `http://127.0.0.1:8787/index.json`。
-
-## 这个仓库做了什么
-
-| 部分 | 文件 | 说明 |
-|---|---|---|
-| 目录（唯一需要手写的文件） | `sources/index.json` | 标题、分类、标签、排序键、插件清单 |
-| 生成器 | `scripts/build.mjs` | 拉取 npm 元数据、解析图标、生成 `dist/` |
-| 校验 | `scripts/validate.mjs` | 用 DSH 同一个 `parseMarketIndex` 校验 |
-| 静态托管 | `scripts/serve.mjs` | 不重定向、正确的 Content-Type、支持 ETag |
-| 端到端自检 | `scripts/check.mjs` | HTTP 契约 + 格式 + 每个图标能否加载 |
-| 规则库 | `lib/catalog.mjs` | 纯函数：版本策略、发布时刻、引擎范围、Git 源 |
-| 测试 | `test/` | 15 个用例：目录规则、Git 安装参数、服务器行为 |
-
-生成器内置的检查（构建时直接报错，不会产出坏索引）：
-
-- 每个版本必须声明 `dsh.bundle`，否则跳过（`requiresBundle: false` 可关闭）；全部版本都不是组合包时构建失败。
-- `engines.dsh` 必须是合法 SemVer 范围，且不能是 `workspace:`。
-- 图标只能是同源相对路径、`https:` 或 ≤32 KiB 的 `data:` URL。
-- 构建完成后用真实校验器跑一遍，`MarketIndexError` 会打印违规值的 JSON 路径。
-
-## 加自己的插件
-
-编辑 `sources/index.json` 的 `plugins` 数组，然后 `node scripts/build.mjs`。
-
-### npm 包（默认）
-
-```json
-{
-  "name": "@acme/dsh-hello",
-  "title": { "en": "Hello", "zh-cn": "你好" },
-  "description": { "en": "A greeting plugin.", "zh-cn": "打招呼插件。" },
-  "category": "feature",
-  "labels": ["official"],
-  "keywords": ["hello"],
-  "sortKeys": { "featured": 50 },
-  "versions": "all"
-}
-```
-
-- `title` / `description` 可省略：标题回退到包名短名，描述回退到 npm 的 description。
-- `author`、`homepage`、`repository`（含 `directory`）可省略，自动从 npm 元数据推导；`repository.url` 的 `git+` 与 `.git` 会被去掉。
-- `versions`：`"all"`（默认，全部版本）、`"latest"`（跟随 `dist-tags.latest`）或精确版本数组；`maxVersions` 可截断。
-- `registry`：私有 registry 基址（`https:`/`http:`，不能带凭据、查询或片段）。
-- `requiresBundle: false`：索引不是 DSH 组合包的包（默认拒绝）。
-
-### Git 源（未发布到 npm 的插件）
-
-```json
-{
-  "name": "@acme/dsh-hello",
-  "title": { "en": "Hello" },
-  "git": {
-    "url": "https://github.com/acme/dsh-hello",
-    "path": "packages/hello",
-    "versions": [
-      { "version": "1.2.0", "commit": "<40 位小写 commit SHA>", "publishTimestamp": 1760000000 }
-    ]
-  }
-}
-```
-
-安装时生成 `git+https://github.com/acme/dsh-hello.git#<commit>&path:/packages/hello`。`url` 必须是规范化的 https 仓库地址（不能是 tarball，不能带查询/片段），`path` 可省略。
-
-### 图标
-
-- 省略：生成确定性的字母图标（`icons/<slug>.svg`），同名包永远得到同一种颜色。
-- 相对路径：如 `"icon": "assets/hello.svg"`，构建时复制到 `dist/icons/`，索引里写相对引用（同源，最稳妥）。
-- 绝对 `https:` URL：浏览器直接请求；DSH 页面是 https 时 http 图标会被拦截。
-- `data:image/svg+xml;base64,...`：解码后不超过 32 KiB。
-
-### 分类、标签、排序键
-
-先在上层 `metadata` 里声明，插件再引用；引用未声明的 id 会被校验器拒绝：
-
-```json
-"metadata": {
-  "categories": { "feature": { "title": { "en": "Feature", "zh-cn": "功能" } } },
-  "labels": { "experimental": { "title": { "en": "Experimental", "zh-cn": "实验性" } } },
-  "sortKeys": { "featured": { "title": { "en": "Featured", "zh-cn": "推荐" }, "order": "desc" } }
-}
-```
-
-## 在 DSH 里添加索引源
-
-**方式一（推荐，立即生效）**：插件 → 发现 → 添加索引源 → 粘贴 URL。新添加的源会成为当前插件市场，并写入 profile 设置。
-
-**方式二（写进 profile，重启后生效）**：把 `examples/plugin-market.patch.yml` 里的条目合并进 `%DSH_HOME%\profiles\<profile>\cordis.patch.yml`（macOS/Linux 为 `$DSH_HOME/profiles/<profile>/cordis.patch.yml`）。`indexes` 是完整的有序列表，已有 URL 要保留。
-
-这份片段已用 DSH 自己的组合器验证过：
+**新增插件**（校验 → 复制 → 提交 → 重建 → 推送；CI 负责部署）：
 
 ```powershell
-dsh --profile <profile> --dump-config
-# - id: plugin-market
-#   name: '@deepseek-ai/dsh-plugin-market'
-#   disabled: !!js '!ctx.get(''profileContext'')'
-#   config:
-#     indexes:
-#       - http://127.0.0.1:8787/index.json
+node scripts/publish-plugin.mjs C:\path\to\plugin --dry-run   # 可选：只检查，不改动
+node scripts/publish-plugin.mjs C:\path\to\plugin
 ```
 
-## 发布到 GitHub Pages
-
-仓库自带 `.github/workflows/pages.yml`：推送到 `main` 后自动执行 **测试 → 构建 → 校验 → 部署 `dist/`**，并把 Pages 地址作为 `--index-url` 传给构建。`dist/` 是构建产物，不提交到仓库。
-
-1. 在 GitHub 新建一个空仓库，不要勾选初始化 README。
-2. 在 `plugin-index/` 里初始化并推送（地址换成你的仓库）：
+**或者手动做**：把插件包复制成 `plugins/<name>/`，然后：
 
 ```powershell
-git init -b main
-git config user.name "你的名字"
-git config user.email "you@example.com"
-git add .
-git commit -m "feat: dsh plugin index source"
-git remote add origin https://github.com/<user>/<repo>.git
-git push -u origin main
+node scripts/build.mjs
+git add plugins/<name>
+git commit -m "feat(plugins): add <name>@<version>"
+git push
 ```
 
-3. 仓库 **Settings → Pages → Build and deployment → Source** 选择 **GitHub Actions**（只需设置一次）。
-4. 等工作流 **Deploy plugin index** 完成，索引地址为 `https://<user>.github.io/<repo>/index.json`，根地址 `https://<user>.github.io/<repo>/` 是给人看的预览页。
-5. 在 DSH 里 **插件 → 发现 → 添加索引源**，粘贴该地址。
+构建会强制这些规则（违反即失败，不会发布）：
 
-之后修改 `sources/index.json` 并推送，Pages 会自动重建；DSH 侧成功读取的索引缓存 10 分钟（`cacheTtlMs`），点发现页的刷新按钮即可。
+- `plugins/<folder>/package.json` 是合法 JSON，`name` 是合法 npm 包名，`version` 是精确 SemVer。
+- `dsh.bundle.patch` 指向目录内真实存在的文件（通常是 `./cordis.patch.yml`）。
+- 依赖不能使用 `workspace:`、`file:`、`link:`、`portal:`。
+- 包名在所有文件夹中唯一；文件夹名用包名短名（不带 scope）。
+- `dist/` 是生成物，永远不要手改、不要提交。
 
-## 其他托管方式
-
-- **对象存储 / Nginx**：`node scripts/build.mjs --index-url https://你的域名/index.json` 后上传 `dist/`。DSH 拒绝重定向，索引 URL 必须是最终地址，不能靠 301/302 跳转。
-- **本机常驻**：`node scripts/serve.mjs --host 0.0.0.0` 让局域网内其他机器读取；Windows 可用计划任务开机启动。
-- **https 页面 + http 索引**：索引本身可以是 `http:`（DSH 允许），但 DSH Web 走 https 时浏览器会拦截 http 图标。本项目默认使用同源相对图标，避免这个问题；换成远程图标时请用 `https:`。
-
-## 命令
+## 仓库结构
 
 ```text
-node scripts/build.mjs [--sources FILE] [--out DIR] [--registry URL] [--index-url URL] [--refresh] [--offline]
-node scripts/validate.mjs [dist/index.json] [--index-url URL]
-node scripts/serve.mjs [--root dist] [--host 127.0.0.1] [--port 8787]
-node scripts/check.mjs [--url URL] [--spawn]
+plugin-index/
+├─ plugins/                    # 每个子目录是一个可安装的 DSH 组合包
+│  └─ <name>/                  # package.json、cordis.patch.yml、lib/、dsh-index.json、图标、README
+├─ index.config.json           # 索引标题/描述、安装仓库地址、分类/标签/排序键声明
+├─ lib/
+│  ├─ plugins.mjs              # 插件目录规则 + 格式 1 文档生成
+│  ├─ icons.mjs                # 自动生成的字母图标
+│  └─ server.mjs               # 本地预览/自检用的静态服务器
+├─ scripts/
+│  ├─ build.mjs                # plugins/ → dist/index.json，写盘前先校验
+│  ├─ publish-plugin.mjs       # 复制本地插件进 plugins/、提交、重建、推送
+│  ├─ validate.mjs             # 校验已有的 dist/index.json
+│  ├─ serve.mjs                # 用 HTTP 提供 dist/
+│  └─ check.mjs                # 对运行中的 URL 做 HTTP/格式/图标检查
+├─ test/                       # node:test 用例
+├─ docs/format-1.md            # 索引格式逐字段说明
+└─ .github/workflows/pages.yml # 测试 → 构建 → 校验 → 部署 Pages
+```
+
+## 索引是怎么生成的
+
+1. `scripts/build.mjs` 扫描 `plugins/` 下每个带 `package.json` 的直接子目录。
+2. 每个插件生成一条索引记录；展示信息来自 `plugins/<name>/dsh-index.json`，缺省时回退到 `package.json` 字段和自动生成的图标。
+3. 条目里唯一的版本固定到「正在构建的提交」和 `plugins/<name>` 路径：
+
+   ```json
+   {
+     "version": "1.0.0",
+     "publishTimestamp": 1760000000,
+     "source": {
+       "type": "git",
+       "url": "https://github.com/classic-takeoff/DSH_Plugins_Source",
+       "commit": "<40 位提交>",
+       "path": "plugins/<name>"
+     }
+   }
+   ```
+
+   DSH 安装时使用 `git+https://github.com/classic-takeoff/DSH_Plugins_Source.git#<commit>&path:/plugins/<name>`。
+4. 写 `dist/` 之前用 `parseMarketIndex`（DSH 自带的那份解析器）校验。提交默认取 `HEAD`，CI 显式传入本次推送的 SHA。
+
+每个插件只列一个版本，即 `package.json` 的 `version`。升版本后推送就会替换列表里的版本。需要保留历史版本的话，请改为发布到 npm。
+
+## 插件包要求
+
+```text
+plugins/dsh-hello/
+├─ package.json        # 必需
+├─ cordis.patch.yml    # 必需，由 dsh.bundle.patch 指向
+├─ lib/index.js        # 必需，包的入口
+├─ dsh-index.json      # 可选，展示信息
+├─ icon.svg            # 可选，图标
+└─ README.md           # 可选
+```
+
+`package.json` 必须像一个可发布的 DSH 组合包：
+
+```json
+{
+  "name": "@acme/dsh-hello",
+  "version": "1.0.0",
+  "description": "Greets the model.",
+  "type": "module",
+  "main": "lib/index.js",
+  "dsh": { "bundle": { "patch": "./cordis.patch.yml" } },
+  "engines": { "dsh": ">=0.2.0" }
+}
+```
+
+`dsh-index.json` 可选，字段也全部可选：
+
+| 字段 | 含义 |
+|---|---|
+| `title` | 本地化标题：字符串视为英文，或使用小写语言 id 的对象且必须含 `en`，例如 `{"en": "Hello", "zh-cn": "你好"}`。 |
+| `description` | 本地化描述，规则同上。 |
+| `category` | 一个在 `index.config.json` → `metadata.categories` 里声明的 id。 |
+| `labels` | 在 `metadata.labels` 里声明的 id，不可重复。 |
+| `keywords` | 自由搜索词。 |
+| `sortKeys` | 已声明的排序键 → 有限数字，例如 `{"featured": 10}`。 |
+| `icon` | 目录内的相对文件（`.svg`/`.png`/`.jpg`/`.jpeg`/`.webp`）、`https:` URL，或不超过 32 KiB 的 `data:` URL；省略则自动生成字母图标。 |
+| `author` | 展示作者。 |
+| `homepage` | 绝对 `http(s)` URL。 |
+
+`index.config.json` 还声明索引标题、安装仓库（`repository`）和本地校验用的地址（`indexUrl`）。新增分类或标签必须先加到这里，否则构建会拒绝插件条目。
+
+## 发布插件
+
+`scripts/publish-plugin.mjs` 一次做完这些事：
+
+1. 用与构建相同的规则校验源目录；
+2. 复制到 `plugins/<name>/`（排除 `node_modules/`、`.git/`、`dist/`、缓存）；
+3. 重新扫描 `plugins/`，拒绝重名或非法包；
+4. 提交 `feat(plugins): add <name>@<version>`；
+5. 针对新提交重建并校验索引；
+6. 推送，触发 GitHub Actions。
+
+参数：
+
+| 参数 | 作用 |
+|---|---|
+| `--dry-run` | 只校验并打印计划，不改动任何文件。 |
+| `--no-push` | 复制并提交，但不推送。 |
+| `--no-commit` | 只复制，并打印需要自己执行的 git 命令。 |
+| `--update` | 覆盖已存在的 `plugins/<name>/`。 |
+| `--allow-dirty` | 允许仓库里存在无关的未提交改动。 |
+| `--message TEXT` | 自定义提交信息。 |
+
+除非传 `--allow-dirty`，仓库必须是干净的（先 commit 或 stash）；要 CI 部署，当前分支必须是 `main` 或 `master`。
+
+### 更新与删除
+
+- **更新**：修改插件 `package.json` 的 `version`，然后 `node scripts/publish-plugin.mjs <path> --update`。
+- **删除**：删掉 `plugins/<name>/`，提交并推送，下次构建就不再包含该条目。
+
+## 本地验证
+
+```powershell
+node scripts/build.mjs            # 生成并校验 dist/index.json
+node scripts/validate.mjs         # 再校验已生成的文件
+node scripts/serve.mjs            # http://127.0.0.1:8787/index.json
+node scripts/check.mjs --spawn    # HTTP 契约、格式、每个图标
 node --test --test-isolation=none "test/*.test.mjs"
 ```
 
-`build` 默认缓存 npm 文档到 `.cache/registry/`，重复构建不再联网；`--refresh` 重新拉取，`--offline` 只用缓存。
+`build.mjs` 会从 git 读取提交和时间戳；在没有 git 的环境里，显式传 `--commit <40 位 SHA> --timestamp <Unix 秒>`。
+
+## 持续部署
+
+`.github/workflows/pages.yml` 在每次推送到 `main`/`master`（以及手动触发）时执行：
+
+1. `pnpm install --frozen-lockfile`
+2. `node --test test/plugins.test.mjs test/server.test.mjs`
+3. 解析 Pages 基础地址
+4. `node scripts/build.mjs --commit $GITHUB_SHA --index-url <pages>/index.json`
+5. `node scripts/validate.mjs --index-url <pages>/index.json`
+6. 上传 `dist/` 并部署到 GitHub Pages
+
+站点必须公开可读：DSH 是匿名抓取索引的，所以私有仓库需要支持「私有仓库 Pages」的计划（GitHub Free 不支持）。
 
 ## 常见问题
 
-- **「发现」里显示读取失败**：先跑 `node scripts/check.mjs`，确认 URL 可访问且格式有效；错误会带上 `$.plugins[...]` 这类 JSON 路径。
-- **发现页是空的**：目录里没有插件（`plugins: []`）。格式 1 允许空索引，只是没有可展示的卡片；把插件加进 `sources/index.json` 后重新构建并推送即可。
-- **添加后没有变化**：DSH 对成功读取的索引缓存 10 分钟（`cacheTtlMs`），点发现页的刷新按钮或改配置后重启。
-- **图标 404**：`dist/icons/` 没有一起部署，或 `--index-url` 与部署地址的主机不一致导致相对路径解析到别处。
-- **版本缺失**：未声明 `dsh.bundle` 的版本会被跳过，构建日志会打印 `skip <name>@<version> (not a bundle)`。
-- **为什么没有 Schedule 组合包**：`@deepseek-ai/dsh-experimental-schedule-bundle` 已在 v0.2.0-rc.2 退役，「自动化任务」由 `@deepseek-ai/dsh-web-app` 直接挂载（`schedule` + `ui-schedule`）。不要再把它加进目录：重复挂载只会产生多余的行。
-- **升级**：插件市场目前只显示 `有新版本`，升级需要先卸载再安装。
-- **索引很大**：`maxVersions` 控制每个包的版本数；DSH 单份索引上限 128 MiB，但实际应远小于此。
+| 现象 | 原因 / 处理 |
+|---|---|
+| 发现页没有插件 | `plugins/` 为空，或工作流还没跑完。看 Actions 运行结果；DSH 对成功读取的索引缓存 10 分钟（`cacheTtlMs`），点刷新。 |
+| 安装失败 | 固定到的提交里必须包含 `plugins/<name>`。重跑工作流会用新提交重建；force-push 会让旧索引里的固定提交失效。 |
+| CI 在 `Test` 失败 | 本地跑上面的测试命令，修好再推。 |
+| `publish` 报工作区不干净 | 先提交/暂存，或传 `--allow-dirty`（否则新提交会带上那些改动）。 |
+| `publish` 报 could not read Username | 先登录一次 `git credential-manager github login`，或自己 push。 |
+| 图标 404 | 图标必须是插件目录内的文件，或 `https:`/`data:` URL；改完要重新构建部署。 |
+| `index.config.json: … is not a supported field` | 只允许 `title`、`description`、`repository`、`indexUrl`、`metadata`。 |
+| 构建报 `cannot read git metadata` | 在克隆目录里运行，或显式传 `--commit` 和 `--timestamp`。 |
 
-## 说明
+## 索引格式
 
-- 索引没有签名：索引内容（包括 Git 条目的名称和版本）是市场方的声明，真正安装什么由包自身的 manifest 决定。
-- 校验器与 DSH 0.2.1-rc.2 内置实现是同一份 `lib/index.js`（与 npm `0.2.1-alpha.4` 逐字节一致），所以本地通过即代表 DSH 接受。
+发布出去的文档遵循插件市场索引格式 1。逐字段规则（包括 Git 源与图标限制）见 [docs/format-1.md](docs/format-1.md)。
