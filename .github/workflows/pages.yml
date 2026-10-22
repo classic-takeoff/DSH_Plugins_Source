@@ -33,7 +33,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Test
-        run: node --test --test-isolation=none "test/*.test.mjs"
+        run: node --test test/catalog.test.mjs test/server.test.mjs
 
       - name: Resolve Pages URL
         id: pages
