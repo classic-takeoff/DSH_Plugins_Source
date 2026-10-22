@@ -184,9 +184,10 @@ async function main() {
     throw error;
   }
   const commit = git(['rev-parse', 'HEAD']);
+  const timestamp = Number(git(['log', '-1', '--format=%ct']));
   console.log(`committed ${commit.slice(0, 7)} ${message}`);
 
-  run(process.execPath, [path.join('scripts', 'build.mjs'), '--commit', commit]);
+  run(process.execPath, [path.join('scripts', 'build.mjs'), '--commit', commit, '--timestamp', String(timestamp)]);
   console.log('index built and validated against the new commit');
 
   if (args['no-push'] === true) {
