@@ -1,0 +1,3 @@
+- insert:
+    - id: plugin-upgrader
+      name: dsh-plugin-upgrader
