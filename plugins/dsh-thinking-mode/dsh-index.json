@@ -1,15 +1,24 @@
 {
   "title": {
-    "en": "thinking",
-    "zh-cn": "thinking"
+    "en": "Concise Thinking",
+    "zh-cn": "简洁思考模式"
   },
   "description": {
     "en": "A work-step view that shows only reasoning: tool calls are hidden and thinking text is shown unwrapped and complete.",
     "zh-cn": "只展示思考的工作步骤视图：隐藏工具调用，思考内容不换行、完整显示。"
   },
   "category": "tools",
-  "labels": ["experimental"],
-  "keywords": ["thinking", "reasoning", "思考", "精简"],
-  "sortKeys": { "featured": 15 },
+  "labels": [
+    "experimental"
+  ],
+  "keywords": [
+    "thinking",
+    "reasoning",
+    "思考",
+    "精简"
+  ],
+  "sortKeys": {
+    "featured": 15
+  },
   "author": "classic-takeoff"
 }

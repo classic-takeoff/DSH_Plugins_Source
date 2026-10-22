@@ -1,7 +1,7 @@
 {
   "name": "dsh-thinking-mode",
-  "version": "1.0.0",
-  "description": "A thinking-only work-step view: hides tool-call rows and shows reasoning unwrapped.",
+  "version": "1.0.1",
+  "description": "Concise thinking work-step view: hides tool calls and shows reasoning unwrapped.",
   "type": "module",
   "main": "lib/index.js",
   "exports": {

@@ -106,30 +106,28 @@ window.__ModuleLoader__.load({
 				}
 			},
 				h("div", { style: { minWidth: 0 } },
-					h("div", { style: { fontWeight: 600, fontSize: "14px" } }, "thinking"),
+					h("div", { style: { fontWeight: 600, fontSize: "14px" } }, zh ? "简洁思考模式" : "Concise thinking"),
 					h("div", { style: { opacity: 0.65, fontSize: "12px", lineHeight: "18px", marginTop: "2px" } },
 						zh
 							? "仅展示思考内容：隐藏工具调用，思考不换行、完整显示"
 							: "Thinking only: hides tool calls and shows reasoning unwrapped")),
 				h("button", {
 					type: "button",
-					role: "switch",
-					"aria-checked": on,
+					"aria-pressed": on,
+					"data-dsh-thinking-toggle": on ? "on" : "off",
 					onClick: () => setEnabled(!on),
 					style: {
 						flex: "none",
 						cursor: "pointer",
-						width: "40px",
-						height: "22px",
-						borderRadius: "999px",
-						border: "1px solid rgba(127,127,127,.35)",
-						background: on ? "var(--dsw-alias-brand-primary, #4d6bfe)" : "rgba(127,127,127,.2)",
-						color: "#fff",
-						fontSize: "11px",
-						lineHeight: "20px",
-						padding: 0
+						padding: "4px 14px",
+						borderRadius: "6px",
+						border: on ? "1px solid transparent" : "1px solid rgba(127,127,127,.4)",
+						background: on ? "var(--dsw-alias-brand-primary, #4d6bfe)" : "transparent",
+						color: on ? "#fff" : "var(--dsw-alias-label-primary, inherit)",
+						fontSize: "12px",
+						lineHeight: "20px"
 					}
-				}, on ? (zh ? "开" : "on") : (zh ? "关" : "off")));
+				}, zh ? (on ? "关闭" : "开启") : (on ? "Disable" : "Enable")));
 		}
 
 		function apply(ctx) {

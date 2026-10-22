@@ -1,8 +1,8 @@
-# thinking
+# 简洁思考模式（Concise Thinking）
 
 工作步骤展示的「只思考」视图。
 
-开关在 **设置 → 通用**，紧跟在「工作步骤展示」下方（名称就是 `thinking`）。打开后：
+开关在 **设置 → 通用**，紧跟在「工作步骤展示」下方，名称是 **简洁思考模式**，右侧是一个「开启 / 关闭」按钮。开启后：
 
 - 隐藏所有工具调用行（`data-chat-flow-kind="tool-call"`），过程区只剩思考。
 - 自动展开思考行，并替换思考正文为**不换行**的单行文本，可横向滚动查看完整内容。
@@ -10,7 +10,7 @@
 
 ## 为什么不是下拉里的第五项
 
-`工作步骤展示` 的可选值是 ui-chat 内置的固定枚举（compact/standard/detailed/verbose），Host 的 settings schema 会拒绝其它值，插件无法合法写入 `transcriptView: "thinking"`。所以这个插件用独立开关实现相同的显示效果，开关位置就在该设置行下方。
+`工作步骤展示` 的可选值是 ui-chat 内置的固定枚举（compact/standard/detailed/verbose），Host 的 settings schema 会拒绝其它值，插件无法合法写入自定义的 `transcriptView`。所以这个插件用独立开关实现相同的显示效果，开关位置就在该设置行下方。
 
 ## 实现方式
 
