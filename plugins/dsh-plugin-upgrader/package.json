@@ -1,7 +1,7 @@
 {
   "name": "dsh-plugin-upgrader",
-  "version": "1.0.0",
-  "description": "Adds an Upgrades tab to the Plugins page: lists market plugins with a newer version and installs the update.",
+  "version": "1.1.0",
+  "description": "Adds an upgrade action to installed plugin pages: when the market has a newer version, one click installs it.",
   "type": "module",
   "main": "lib/index.js",
   "exports": {

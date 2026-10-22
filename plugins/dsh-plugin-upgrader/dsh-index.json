@@ -4,12 +4,21 @@
     "zh-cn": "插件升级"
   },
   "description": {
-    "en": "Adds an Upgrades tab to the Plugins page: lists market plugins with a newer version and installs the update in one click.",
-    "zh-cn": "在插件页新增「升级」标签页：列出市场里有更新版本的插件，一键安装升级。"
+    "en": "Adds an upgrade action to installed plugin pages: when the market has a newer version, one click installs it.",
+    "zh-cn": "在已安装插件详情页显示「升级最新版本」按钮：市场里有新版本时，一键升级到最新版本。"
   },
   "category": "tools",
-  "labels": ["experimental"],
-  "keywords": ["upgrade", "update", "插件升级", "更新"],
-  "sortKeys": { "featured": 12 },
+  "labels": [
+    "experimental"
+  ],
+  "keywords": [
+    "upgrade",
+    "update",
+    "插件升级",
+    "更新"
+  ],
+  "sortKeys": {
+    "featured": 12
+  },
   "author": "classic-takeoff"
 }
