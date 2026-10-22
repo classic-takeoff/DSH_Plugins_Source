@@ -4,8 +4,8 @@
     "zh-cn": "余额角标"
   },
   "description": {
-    "en": "Shows the DeepSeek account balance in the bottom-right corner, refreshed automatically every minute, via the refresh button, or by clicking the artwork under it.",
-    "zh-cn": "在右下角显示 DeepSeek 账户余额，每分钟自动更新，也可点刷新按钮或点击下方立绘立即刷新。"
+    "en": "A draggable character card whose speech bubble shows the DeepSeek account balance. The bubble keeps its size while the character shrinks, and the card snaps to the window edge.",
+    "zh-cn": "可拖动的角色立绘卡片，余额显示在对话气泡里。气泡和文字大小固定，人物可缩小放大，松手自动吸附窗口边缘。"
   },
   "category": "tools",
   "labels": ["stable"],
