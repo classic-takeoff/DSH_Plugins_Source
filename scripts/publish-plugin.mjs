@@ -120,8 +120,19 @@ async function main() {
   }
 
   const sourceDir = path.resolve(process.cwd(), String(args._[0]));
+  const sourceStat = await fs.stat(sourceDir).catch(() => undefined);
+  if (sourceStat === undefined || !sourceStat.isDirectory()) {
+    throw new PluginError(sourceDir, 'must be a directory that contains a plugin package');
+  }
+  if (sourceDir === ROOT || ROOT.startsWith(sourceDir + path.sep)) {
+    throw new PluginError(sourceDir, 'must not contain the repository itself');
+  }
+
   const folder = folderFor(await packageNameOf(sourceDir), sourceDir);
   const targetDir = path.join(PLUGINS_ROOT, folder);
+  if (targetDir === sourceDir || targetDir.startsWith(sourceDir + path.sep) || sourceDir.startsWith(targetDir + path.sep)) {
+    throw new PluginError(sourceDir, 'must not overlap plugins/<name>');
+  }
   const exists = await fs.stat(targetDir).then((stat) => stat.isDirectory()).catch(() => false);
 
   if (exists && args.update !== true) {
@@ -129,8 +140,7 @@ async function main() {
   }
 
   const plugin = await readPlugin(sourceDir, folder, sourceDir);
-  await fs.access(path.join(ROOT, 'index.config.json'));
-  loadConfig(parseJson(await fs.readFile(path.join(ROOT, 'index.config.json'), 'utf8'), 'index.config.json'));
+  const config = loadConfig(parseJson(await fs.readFile(path.join(ROOT, 'index.config.json'), 'utf8'), 'index.config.json'));
 
   const top = gitOrNull(['rev-parse', '--show-toplevel']);
   if (top === undefined || path.resolve(top) !== ROOT) {
@@ -140,9 +150,23 @@ async function main() {
   if (branch !== 'main' && branch !== 'master') {
     console.warn(`warning: on branch ${branch}; GitHub Actions deploys only from main or master`);
   }
-  const dirty = git(['status', '--porcelain']);
-  if (dirty !== '' && args['allow-dirty'] !== true) {
-    throw new Error(`the repository has uncommitted changes; commit or stash them first, or pass --allow-dirty:\n${dirty}`);
+  if (gitOrNull(['remote', 'get-url', 'origin']) === undefined) {
+    console.warn('warning: no origin remote configured; the final push will fail until one exists');
+  }
+
+  // A plugin project may live inside this repository; its own untracked or modified files are
+  // expected and must not trip the "working tree is dirty" guard.
+  const relativeSource = path.relative(ROOT, sourceDir).replaceAll('\\', '/');
+  const insideRepo = relativeSource !== '' && !relativeSource.startsWith('..') && !path.isAbsolute(relativeSource);
+  const dirty = git(['status', '--porcelain']).split('\n').filter(Boolean).filter((line) => {
+    if (!insideRepo) return true;
+    const changed = line.slice(3).trim().replace(/^"|"$/gu, '').replaceAll('\\', '/').replace(/\/$/u, '');
+    return changed !== relativeSource
+      && !relativeSource.startsWith(`${changed}/`)
+      && !changed.startsWith(`${relativeSource}/`);
+  });
+  if (dirty.length > 0 && args['allow-dirty'] !== true) {
+    throw new Error(`the repository has uncommitted changes; commit or stash them first, or pass --allow-dirty:\n${dirty.join('\n')}`);
   }
 
   console.log(`publishing ${plugin.name}@${plugin.version}`);
@@ -175,6 +199,12 @@ async function main() {
     return;
   }
 
+  const identityName = gitOrNull(['config', 'user.name']);
+  const identityEmail = gitOrNull(['config', 'user.email']);
+  if (identityName === undefined || identityEmail === undefined) {
+    throw new Error('git user.name/user.email are not configured; run:\n  git config user.name "Your Name"\n  git config user.email "you@example.com"');
+  }
+
   const message = String(args.message ?? `feat(plugins): add ${plugin.name}@${plugin.version}`);
   try {
     git(['add', '--', `plugins/${folder}`]);
@@ -194,10 +224,15 @@ async function main() {
     console.log('\n--no-push: run `git push` when you are ready');
     return;
   }
-  run('git', ['push', 'origin', `HEAD:${branch}`]);
+  try {
+    run('git', ['push', 'origin', `HEAD:${branch}`]);
+  } catch {
+    throw new Error('git push failed; log in with `git credential-manager github login` and retry, or run `git push` yourself');
+  }
   console.log('');
   console.log(`pushed to ${branch}. GitHub Actions is rebuilding the index now.`);
-  console.log('index source: https://classic-takeoff.github.io/DSH_Plugins_Source/index.json');
+  console.log(`actions: ${config.repository}/actions`);
+  console.log(`index source: ${config.indexUrl ?? 'see index.config.json'}`);
 }
 
 async function packageNameOf(dir) {
